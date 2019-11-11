@@ -25,8 +25,9 @@
 
 #include "delay.h"
 
-const char *URL = "https://azu5ixsllp2fm-ats.iot.ap-northeast-1.amazonaws.com:8443/topics/things/test/shadow";
-const char *POSTDATA = "{\"state\":{\"reported\":{\"LED\":\"ON\"}}}";
+const char *URL = "https://azu5ixsllp2fm-ats.iot.ap-northeast-1.amazonaws.com:8443/topics/my/dev";
+
+const char POSTDATA[] = "{\"state\":{\"reported\":{\"LED\":\"ON\"}}}";
 
 static volatile sig_atomic_t terminationRequired = false;
 
@@ -73,6 +74,11 @@ static void ConnectAWSIoTCore(void)
 		goto cleanupLabel;
 	}
 
+	if ((res = curl_easy_setopt(curlHandle, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2)) != CURLE_OK) {
+		LogCurlError("curl_easy_setopt CURLOPT_SSLVERSION", res);
+		goto cleanupLabel;
+	}
+
 	if ((res = curl_easy_setopt(curlHandle, CURLOPT_PORT, 8443L)) != CURLE_OK) {
 		LogCurlError("curl_easy_setopt CURLOPT_PORT", res);
 		goto cleanupLabel;
@@ -96,36 +102,36 @@ static void ConnectAWSIoTCore(void)
 	if ((res = curl_easy_setopt(curlHandle, CURLOPT_POSTFIELDSIZE, sizeof(POSTDATA))) != CURLE_OK) {
 		LogCurlError("curl_easy_setopt CURLOPT_POSTFIELDSIZE", res);
 		goto cleanupLabel;
-	}
+	} 
 
 	server_cert_path = Storage_GetAbsolutePathInImagePackage("certs/AmazonRootCA1.pem");
-
-#if defined(CFG_AWS_IOT_CERTIFICATE)
-	client_cert_path = Storage_GetAbsolutePathInImagePackage("certs/f1314901d2-certificate.pem");
-	client_key_path  = Storage_GetAbsolutePathInImagePackage("certs/f1314901d2-private.pem");
-#endif
-
-#if defined(CFG_AWS_IOT_CERTIFICATE)
-	if ((server_cert_path == NULL) || (client_cert_path == NULL) || (client_key_path == NULL)) {
-#elif defined(CFG_SPHERE_DEV_CERTIFICATE)
 	if (server_cert_path == NULL) {
-#endif
 		Log_Debug("The server certificate path could not be resolved: errno=%d (%s)\r\n", errno, strerror(errno));
 		goto cleanupLabel;
-	}
+	} 
 
+	// TODO: Why I can't pass server verfication? I have added all required certficates.
 	if ((res = curl_easy_setopt(curlHandle, CURLOPT_CAINFO, server_cert_path)) != CURLE_OK) {
 		LogCurlError("curl_easy_setopt CURLOPT_CAINFO", res);
 		goto cleanupLabel;
-	}
+	} 
 
 	if ((res = curl_easy_setopt(curlHandle, CURLOPT_SSL_VERIFYHOST, 0)) != CURLE_OK) {
 		LogCurlError("curl_easy_setopt CURLOPT_SSL_VERIFYHOST", res);
 		goto cleanupLabel;
-	}
+	} 
 
 	if ((res = curl_easy_setopt(curlHandle, CURLOPT_SSL_VERIFYPEER, 0)) != CURLE_OK) {
 		LogCurlError("curl_easy_setopt CURLOPT_SSL_VERIFYPEER", res);
+		goto cleanupLabel;
+	} 
+
+#if defined(CFG_AWS_IOT_CERTIFICATE)
+	client_cert_path = Storage_GetAbsolutePathInImagePackage("certs/f1314901d2-certificate.pem");
+	client_key_path = Storage_GetAbsolutePathInImagePackage("certs/f1314901d2-private.pem");
+	
+	if ((client_cert_path == NULL) || (client_key_path == NULL)) {
+		Log_Debug("The client certificate/key path could not be resolved: errno=%d (%s)\r\n", errno, strerror(errno));
 		goto cleanupLabel;
 	}
 
@@ -138,6 +144,7 @@ static void ConnectAWSIoTCore(void)
 		LogCurlError("curl_easy_setopt CURLOPT_SSLKEY", res);
 		goto cleanupLabel;
 	}
+#endif
 
 	if ((res = curl_easy_setopt(curlHandle, CURLOPT_VERBOSE, 1L)) != CURLE_OK) {
 		LogCurlError("curl_easy_setopt CURLOPT_VERBOSE", res);
@@ -145,7 +152,7 @@ static void ConnectAWSIoTCore(void)
 	}
 
 #if defined(CFG_SPHERE_DEV_CERTIFICATE)
-	if ((res = curl_easy_setopt(curlHandle, CURLOPT_SSL_CTX_FUNCTION, DeviceAuth_CurlSslFunc)) != CURLE_OK) {
+	if ((res = curl_easy_setopt(curlHandle, CURLOPT_SSL_CTX_FUNCTION, UserSslCtxFunction)) != CURLE_OK) {
 		LogCurlError("curl_easy_setopt CURLOPT_SSL_CTX_FUNCTION", res);
 		goto cleanupLabel;
 	}
