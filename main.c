@@ -25,7 +25,7 @@
 
 #include "delay.h"
 
-const char *URL = "https://azu5ixsllp2fm-ats.iot.ap-northeast-1.amazonaws.com:8443/topics/my/dev";
+const char *URL = "https://azu5ixsllp2fm-ats.iot.ap-northeast-1.amazonaws.com:8443/topics/myhome/myroom";
 
 const char POSTDATA[] = "{\"state\":{\"reported\":{\"LED\":\"ON\"}}}";
 
@@ -158,9 +158,13 @@ static void ConnectAWSIoTCore(void)
 	}
 #endif
 
-	if ((res = curl_easy_perform(curlHandle)) != CURLE_OK) {
-		LogCurlError("curl_easy_perform", res);
-	}
+	do {
+		if ((res = curl_easy_perform(curlHandle)) != CURLE_OK) {
+			LogCurlError("curl_easy_perform", res);
+		}
+
+		delay_ms(5000);
+	} while (res != CURLE_OK);
 
 cleanupLabel:
 	// Clean up sample's cURL resources.
