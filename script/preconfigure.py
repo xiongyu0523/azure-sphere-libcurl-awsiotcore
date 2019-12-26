@@ -1,11 +1,21 @@
 import os
+import json
+import time
 import boto3
 from asn1crypto import pem, x509
 from subprocess import run, PIPE
 
 azsphere_program = r'C:\Program Files (x86)\Microsoft Azure Sphere SDK\Tools\azsphere '
 ioTPolicyName = 'IoTSimplePolicy'
+iamRolePath = '/service-role/'
+
+region = boto3.session.Session().region_name
+accountId = boto3.client('sts').get_caller_identity().get('Account')
+
 iotclient = boto3.client('iot')
+lambdaclient = boto3.client('lambda')
+iamclient = boto3.client('iam')
+
 CA_FILE_NAME = 'ca.cer'
 VER_FILE_NAME = 'ver.cer'
 
@@ -23,7 +33,7 @@ def utility_download_validation_certificate(code, file_name):
     str = result.stdout.decode('utf-8')
     return True if 'Saved the validation certificate' in str else False    
 
-def ca_certificate_register():
+def register_ca_certificate():
 
     if utility_verison() < '19.11':
         print('ERROR: update Azure Sphere SDK to the latest version')
@@ -56,8 +66,6 @@ def ca_certificate_register():
         response = iotclient.register_ca_certificate(caCertificate=ca_pem.decode('utf-8'), verificationCertificate=ver_pem.decode('utf-8'), setAsActive=True, allowAutoRegistration=True)
     except iotclient.exceptions.ResourceAlreadyExistsException:
         print("INFO: Already have this CA registered")
-    else:
-        print("INFO: A new CA certificate is registered")
 
 def create_iot_policy():
     try:
@@ -66,11 +74,99 @@ def create_iot_policy():
             policyDocument="{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Action\":\"iot:*\",\"Resource\":\"*\"}]}"
         )
     except iotclient.exceptions.ResourceAlreadyExistsException:
-        print("INFO: Already have this policy")
+        print("INFO: Already have this IoT policy")
+
+def create_lambda_rule(fn_name):
+
+    role_name = fn_name + 'Role'
+
+    assume_role_policy_document = json.dumps({
+        "Version": "2012-10-17",
+        "Statement": [{
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "lambda.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
+        }]
+    })
+
+    inline_policy_document = json.dumps({
+
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                ],
+                "Resource": "*"
+            },
+            {
+                "Effect": "Allow",
+                "Action": "logs:CreateLogGroup",
+                "Resource": "*"
+            },
+            {
+                "Effect": "Allow",
+                "Action": "iot:*",
+                "Resource": "*"
+            }
+        ]
+    })
+
+    try:
+        response = iamclient.create_role(
+            RoleName=role_name,
+            AssumeRolePolicyDocument=assume_role_policy_document,
+        )
+
+    except iamclient.exceptions.EntityAlreadyExistsException:
+        print('INFO: Already have this IAM role')
     else:
-        print("INFO: A new policy is created")
+        iamclient.put_role_policy(RoleName=role_name, PolicyName='inline_policy', PolicyDocument=inline_policy_document)
+
+    # wait for a while to sync 
+    time.sleep(15)
+
+    try:
+        response = lambdaclient.create_function(
+            FunctionName=fn_name,
+            Runtime='python3.7',
+            Role=f'arn:aws:iam::{accountId}:role/{role_name}',
+            Handler=f"{fn_name}.lambda_handler",
+            Code={'ZipFile': open(f'{fn_name}.zip', 'rb').read()},
+        )
+
+    except lambdaclient.exceptions.ResourceConflictException:
+        print('INFO: Already have this Lambda function')
+
+    rule_name = fn_name + 'Rule'
+
+    iotclient.create_topic_rule(
+        ruleName=rule_name, 
+        topicRulePayload={
+            'sql': 'SELECT * FROM \'$aws/events/certificates/registered/+\'', 
+            'actions': [{'lambda':{'functionArn': f'arn:aws:lambda:{region}:{accountId}:function:{fn_name}'}}], 
+            'ruleDisabled': False, 
+            'awsIotSqlVersion': '2016-03-23'
+        }
+    )
+
+    try:
+        lambdaclient.add_permission(
+            FunctionName=fn_name,
+            StatementId='abcdefg',
+            Action='lambda:InvokeFunction',
+            Principal='iot.amazonaws.com',
+            SourceArn=f'arn:aws:iot:{region}:{accountId}:rule/{rule_name}'
+        )
+    except lambdaclient.exceptions.ResourceConflictException:
+        print('INFO: Already have this permission added')
 
 if __name__ == "__main__":
 
-    ca_certificate_register()
+    register_ca_certificate()
     create_iot_policy()
+    create_lambda_rule('AzureSphereJITR')
