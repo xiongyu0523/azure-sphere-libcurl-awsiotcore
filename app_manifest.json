@@ -6,10 +6,10 @@
   "CmdArgs": [],
   "Capabilities": {
     "Gpio": [ 9 ],
-    "AllowedConnections": [ "azu5ixsllp2fm-ats.iot.ap-northeast-1.amazonaws.com" ],
+    "AllowedConnections": [ "<custom-endpoint-url>" ],
     "AllowedTcpServerPorts": [ 8443 ],
     "NetworkConfig": true,
-    "DeviceAuthentication": "d343c263-4aa3-4558-adbb-d3fc34631800"
+    "DeviceAuthentication": "<tenant-id>"
   },
   "ApplicationType": "Default"
 }

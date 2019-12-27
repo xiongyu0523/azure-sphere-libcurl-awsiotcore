@@ -25,7 +25,7 @@
 
 #include "delay.h"
 
-const char *URL = "https://azu5ixsllp2fm-ats.iot.ap-northeast-1.amazonaws.com:8443/topics/myhome/myroom";
+const char *URL = "https://<custom-endpoint-url>:8443/topics/myhome/myroom";
 
 const char POSTDATA[] = "{\"state\":{\"reported\":{\"LED\":\"ON\"}}}";
 
