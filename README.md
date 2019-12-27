@@ -1,4 +1,4 @@
-﻿# Azure Sphere HTTPS demo with AWS IoT Core using JITR
+﻿# Azure Sphere Zero touch provisioning demo on AWS IoT Core
 
 This demo use Azure Sphere's Root-of-Trust identity to register on AWS IoT Core platform through Just-in-time-registeration, aka [JITR](https://aws.amazon.com/blogs/iot/just-in-time-registration-of-device-certificates-on-aws-iot/) mechanism and publish a message to a user defined topic. User can have a zero-touch provisioning expereience with high security and trustworthy using Azure Sphere. 
 
@@ -120,7 +120,9 @@ This demo use Azure Sphere's Root-of-Trust identity to register on AWS IoT Core 
 
     ![](images/cert.png)
 
-## Work flow
+## Workflow
+
+Here is a diagram dipict the overall workflow 
 
 ![](images/workflow.png)
 
