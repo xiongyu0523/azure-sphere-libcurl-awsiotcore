@@ -59,7 +59,7 @@ This demo use Azure Sphere's Root-of-Trust identity to register on AWS IoT Core 
     - AWS IoT Policy
     - IAM role with built-in polices assuming by Lambda function
     - JITR Lambda function with proper permission (function and its dependencies are located in script/lambda folder)
-    - AWS IoT Rule to monitor certificate register event and trig lambda function
+    - AWS IoT Rule to monitor certificate register event and trigger lambda function
 
 4. Go to [AWS IoT console](https://console.aws.amazon.com/iot/home) **Setting** page, record the **custom endpoint URL**
    
@@ -84,16 +84,39 @@ This demo use Azure Sphere's Root-of-Trust identity to register on AWS IoT Core 
 
 6. In Solution Explorer, right-click the CMakeLists.txt file, and select **Generate Cache for azure-sphere-libcurl-awsiotcore**. This step performs the cmake build process to generate the native ninja build files. 
 7. In Solution Explorer, right-click the *CMakeLists.txt* file, and select **Build** to build the project and generate .imagepackage target.
-8. Double click *CMakeLists.txt* file and press F5 to start the application with debugging. 
-9.  After few seconds, you will see a message is received on the test MQTT client
+8. Double click *CMakeLists.txt* file and press F5 to start the application with debugging. You will observe logs
+   
+    ```
+    Example to connect AWS IoT Core using HTTPS protocol
+   *   Trying 52.193.88.66...
+   * TCP_NODELAY set
+
+   * 
+   Connected to azu5ixsllp2fm-ats.iot.ap-northeast-1.amazonaws.com (52.193.88.66) port 8443 (#0)
+
+    ......
+
+    HTTP/1.1 200 OK
+    < content-type: application/json
+    < content-length: 65
+    < date: Fri, 27 Dec 2019 01:30:19 GMT
+    < x-amzn-RequestId: 8cbd40a3-dc5a-d1a1-3fdd-14154f171077
+    < connection: keep-alive
+    < 
+    * Connection #1 to host azu5ixsllp2fm-ats.iot.ap-northeast-1.amazonaws.com left intact
+    ```
+
+### Test result 
+
+1. In the previous step you have setup the test MQTT client in AWS IoT console, after few seconds launching Azure Sphere, you will see a message is received on the test MQTT client
 
     ![](images/result.png)
 
-10. Go to AWS IoT console **Manage**/**Things** page, your Azure Sphere device will be listed, the display name is 'Azure-Sphere-[fisrt 5 characters of device ID]'. 
+9.  Go to AWS IoT console **Manage**/**Things** page, your Azure Sphere device will be listed, the display name is 'Azure-Sphere-[fisrt 5 characters of device ID]'. 
 
     ![](images/device.png)
 
-11. Go to AWS IoT console **Secure**/**Certificates** page, you will see the device certificate in use is registered. Try to reboot your device by unplug USB cable, afer a while you will observe the device certificate id is changed but still linking to your device in Thing registry. 
+10. Go to AWS IoT console **Secure**/**Certificates** page, you will see the device certificate in use is registered. Try to reboot your device by unplug USB cable, afer a while you will observe the device certificate id is changed but still linking to your device in Thing registry. 
 
     ![](images/cert.png)
 
