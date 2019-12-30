@@ -58,7 +58,7 @@ This demo use Azure Sphere's Root-of-Trust identity to register on AWS IoT Core 
     - Azure Sphere Tenant CA certificate
     - AWS IoT Policy
     - IAM role with built-in polices assuming by Lambda function
-    - JITR Lambda function with proper permission (function and its dependencies are located in script/lambda folder)
+    - JITR Lambda function with proper permission (function and its dependencies can be found [here](scripts/lambda))
     - AWS IoT Rule to monitor certificate register event and trigger lambda function
 
 4. Go to [AWS IoT console](https://console.aws.amazon.com/iot/home) **Setting** page, record the **custom endpoint URL**
